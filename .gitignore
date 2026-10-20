@@ -1,0 +1,9 @@
+# makepkg working directories and build output
+/pkg/
+/src/
+*.pkg.tar.*
+*.deb
+
+# local scratch, not part of the packaging
+/.claude/
+/.local_trash/

@@ -1,0 +1,23 @@
+[Unit]
+Description=Doorbell: a pacman or yay run just started
+Documentation=file:///home/user/claude-desktop-pkgbuild/check-update.sh
+
+[Path]
+# pacman takes this lock for every operation that writes -- -Sy, -Syu, -S, -U,
+# -R -- and releases it at the end, so the lock appearing is the signal that a
+# pacman or yay run has begun. PathExists re-arms only once the lock is gone
+# again, which gives one check per invocation without any debouncing of our own.
+#
+# Deliberately indiscriminate: this only has to be reliable, and check-update.sh
+# narrows it to a system upgrade by reading the command line pacman logs for
+# itself. A pacman hook could do neither half -- it cannot see a bare `pacman
+# -Sy` (hooks run around a *transaction*, and a database sync with no targets
+# is not one), and its triggers match the packages in a transaction, never the
+# flags that caused it, so Operation = Upgrade fires for `pacman -U` too.
+# Watching /var/lib/pacman/sync would miss a sync where no repository had
+# changed, because pacman only rewrites a database it re-downloaded.
+PathExists=/var/lib/pacman/db.lck
+Unit=claude-desktop-update-check.service
+
+[Install]
+WantedBy=default.target

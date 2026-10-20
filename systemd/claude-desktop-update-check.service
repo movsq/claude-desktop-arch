@@ -1,0 +1,10 @@
+[Unit]
+Description=Ask Anthropic's apt index whether a newer Claude Desktop exists
+
+[Service]
+Type=oneshot
+ExecStart=/home/user/claude-desktop-pkgbuild/check-update.sh
+# The check is two small HTTPS requests and a gpg verification; well short of
+# this, but a stalled connection must not leave the unit running and the
+# doorbell disarmed.
+TimeoutStartSec=120

@@ -1,0 +1,36 @@
+# Load the shipped AppArmor profile, mirroring what upstream's Debian postinst
+# does. The profile does not confine the app: flags=(unconfined) only
+# allowlists it for CLONE_NEWUSER on systems that set
+# kernel.apparmor_restrict_unprivileged_userns=1. Without loading it here the
+# profile would sit unused until the next boot, and Chromium would fall back to
+# the SUID chrome-sandbox helper in the meantime.
+#
+# Arch does not enable AppArmor by default, so on a stock install every branch
+# below is a no-op.
+
+_profile=/etc/apparmor.d/claude-desktop
+
+_apparmor_active() {
+  command -v apparmor_parser >/dev/null 2>&1 \
+    && command -v aa-enabled >/dev/null 2>&1 \
+    && aa-enabled --quiet 2>/dev/null
+}
+
+_load_profile() {
+  # A parse error must never fail the transaction; the SUID sandbox still works.
+  _apparmor_active && apparmor_parser -r -W -T "$_profile" || true
+}
+
+post_install() {
+  _load_profile
+}
+
+post_upgrade() {
+  _load_profile
+}
+
+pre_remove() {
+  # pacman deletes package files after pre_remove, so the profile is still
+  # readable here — apparmor_parser -R needs it.
+  _apparmor_active && apparmor_parser -R "$_profile" || true
+}
