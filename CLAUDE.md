@@ -10,9 +10,10 @@ pulls `data.tar.*` out of the `.deb`, `package()` unpacks it into `$pkgdir`, and
 of `package()` translates or drops the Debian-specific wrapping around it.
 
 Git history starts on 2026-10-21, with everything before it squashed into the initial
-commit. For anything older than that, the PKGBUILD comments and `README.md` are the only
-record of why things are the way they are, which makes them unusually load-bearing — keep
-them true when you change the code under them.
+commit. For anything older than that, the PKGBUILD comments and
+`docs/packaging-notes.md` are the only record of why things are the way they are, which
+makes them unusually load-bearing — keep them true when you change the code under them.
+`README.md` is deliberately short and is not the place to put reasoning.
 
 `.claude/aur-comment.md` is a draft message to another AUR maintainer, not guidance.
 
@@ -78,7 +79,8 @@ under `resources/` because the copies reference them there.
 
 The Cowork shims exist because the app resolves its VM tooling through paths hardcoded for
 Debian with no override: `/usr/share/OVMF/OVMF_CODE{_4M,}.fd`, `/usr/share/AAVMF/AAVMF_CODE.fd`,
-`/usr/libexec/virtiofsd`, `/usr/bin/virtiofsd`. See the README for how each maps to Arch.
+`/usr/libexec/virtiofsd`, `/usr/bin/virtiofsd`. `docs/packaging-notes.md` has how each
+maps to Arch.
 
 ## Dependency policy
 
@@ -126,8 +128,8 @@ Its one hard requirement: **nothing it does may stop the app from starting.** A 
 that is a directory, a fifo, a broken symlink or unreadable is skipped, not fatal. With no
 conf files it is a plain `exec`, byte-identical in behaviour to the symlink.
 
-Known limitation, documented in the README and the shipped conf: flags do **not** reach a
-session started by "Open at login". The app writes that autostart entry itself using
+Known limitation, documented in `docs/packaging-notes.md` and the shipped conf: flags do
+**not** reach a session started by "Open at login". The app writes that autostart entry itself using
 `process.execPath`, which is always the real binary, never `/usr/bin/claude-desktop`.
 
 Test it with a harness rather than by launching the app — copy the script, redirect the
