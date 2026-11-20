@@ -15,8 +15,6 @@ commit. For anything older than that, the PKGBUILD comments and
 makes them unusually load-bearing — keep them true when you change the code under them.
 `README.md` is deliberately short and is not the place to put reasoning.
 
-`.claude/aur-comment.md` is a draft message to another AUR maintainer, not guidance.
-
 ## Commands
 
 ```bash
