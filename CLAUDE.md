@@ -79,8 +79,9 @@ under `resources/` because the copies reference them there.
 
 The Cowork shims exist because the app resolves its VM tooling through paths hardcoded for
 Debian with no override: `/usr/share/OVMF/OVMF_CODE{_4M,}.fd`, `/usr/share/AAVMF/AAVMF_CODE.fd`,
-`/usr/libexec/virtiofsd`, `/usr/bin/virtiofsd`. `docs/packaging-notes.md` has how each
-maps to Arch.
+`/usr/libexec/virtiofsd`, `/usr/bin/virtiofsd`. QEMU is hardcoded too
+(`/usr/bin/qemu-system-x86_64` / `-aarch64`), but Arch installs it there, so it is only
+asserted, not shimmed. `docs/packaging-notes.md` has how each maps to Arch.
 
 ## Dependency policy
 

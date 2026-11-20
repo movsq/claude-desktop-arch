@@ -108,7 +108,7 @@ tooling through paths hardcoded for Debian. Read out of `resources/app.asar`:
 
 | Piece | Where the app looks |
 | --- | --- |
-| QEMU | `$PATH`, as `qemu-system-x86_64` / `qemu-system-aarch64` |
+| QEMU | `/usr/bin/qemu-system-x86_64` / `/usr/bin/qemu-system-aarch64` |
 | Firmware (x86_64) | `/usr/share/OVMF/OVMF_CODE_4M.fd`, then `/usr/share/OVMF/OVMF_CODE.fd` |
 | Firmware (aarch64) | `/usr/share/AAVMF/AAVMF_CODE.fd` |
 | virtiofsd | `/usr/libexec/virtiofsd`, then `/usr/bin/virtiofsd` |
@@ -118,7 +118,10 @@ wrapper cannot fix them. The `virtiofsd` binary bundled under `resources/` is
 only consulted when the host is Ubuntu 22.04, so it never applies on Arch.
 Cowork treats the VM as unavailable unless all three resolve.
 
-Arch puts two of them elsewhere, so the package ships compatibility symlinks:
+QEMU was looked up on `$PATH` until at least 3.1623.0; by 5.11492.5 it is a
+fixed path too. Arch's `qemu-system-x86` and `qemu-system-aarch64` install to
+exactly that path, so it needs no shim. Arch puts the other two elsewhere, so
+the package ships compatibility symlinks:
 
 * `/usr/bin/virtiofsd` → `../lib/virtiofsd`, since Arch's `virtiofsd` package
   installs to `/usr/lib/virtiofsd`.
@@ -167,7 +170,7 @@ stops working, with nothing to notice it by.
 So `package()` asserts them. It greps `app.asar` for each path it shims
 (`/usr/bin/virtiofsd`, `/usr/libexec/virtiofsd`, the OVMF `CODE` path and the
 `OVMF_VARS` name the second firmware link is derived from, or `AAVMF_CODE.fd`
-on aarch64) and checks that the search provider's `Exec=` line still names
+on aarch64), for the QEMU path it relies on Arch already matching, and checks that the search provider's `Exec=` line still names
 `/usr/bin/gjs` and a `searchProvider.js` inside this package's own prefix. A
 version bump that changes one of them fails the build with a message naming
 it, which is the moment someone is around to re-audit.
@@ -319,8 +322,10 @@ here match what they independently arrived at.
   idea**, generalised from the one check it makes on the search provider to
   every path this package shims.
 
-Neither Anthropic nor the AUR ships an official Arch package; the `.deb` and
-`.rpm` in the documented repositories are the only Linux builds.
+Neither Anthropic nor the AUR ships an official Arch package. The `.deb` in
+the documented apt repository is the only published Linux build: upstream's
+maintainer scripts mention an rpm, but no rpm, AppImage or Flatpak is
+published, and the docs list Fedora and RHEL as not yet supported.
 
 ### If this is ever published as `claude-desktop-bin`
 

@@ -7,8 +7,8 @@
 
 pkgname=claude-desktop-bin
 _pkgname=claude-desktop
-pkgver=3.1623.0
-pkgrel=3
+pkgver=5.11492.5
+pkgrel=1
 pkgdesc='Claude desktop app: Chat, Cowork and Claude Code in one window (official Anthropic build)'
 arch=('x86_64' 'aarch64')
 url='https://claude.ai/download'
@@ -111,8 +111,8 @@ noextract=("${_pkgname}-${pkgver}-amd64.deb" "${_pkgname}-${pkgver}-arm64.deb")
 sha256sums=('51dde82e033e475ec0326b91cb3fa7124898b07069a4c473cbee1bcc1df4a19c'
             '97dc3edd77a9643d1e5dc70fd463cdf82b4281372506df2242cc68a82c32ec4a')
 # Mirrors the SHA256 published in the repository's Packages index.
-sha256sums_x86_64=('d39e1d9a570f1e517f158479f5a1d903b9a74d1ef3f279362002dcad375e33cf')
-sha256sums_aarch64=('a6e18ed06b48e0af2acd08f4837c2695a4cc027e31a82891a651b486a4a0e55c')
+sha256sums_x86_64=('b96208b207e450b740f7dbe304f6077fed80e7f3d37ddd545991c4e8201564cf')
+sha256sums_aarch64=('fe6cd8a70f96b96eb4e6b647300cfaee6aaff4ce133a0fbbe11c2cdb775f5a6a')
 
 _debarch() {
   [[ $CARCH == aarch64 ]] && echo arm64 || echo amd64
@@ -135,20 +135,23 @@ package() {
   # --- Cowork VM compatibility ------------------------------------------
   # The Cowork sandbox VM resolves its host tooling through paths hardcoded
   # for Debian. From resources/app.asar:
-  #   qemu       looked up on $PATH  (qemu-system-x86_64 / qemu-system-aarch64)
+  #   qemu       /usr/bin/qemu-system-x86_64 (arm64: /usr/bin/qemu-system-aarch64)
   #   firmware   /usr/share/OVMF/OVMF_CODE_4M.fd, /usr/share/OVMF/OVMF_CODE.fd
   #              (arm64: /usr/share/AAVMF/AAVMF_CODE.fd)
   #   virtiofsd  /usr/libexec/virtiofsd, /usr/bin/virtiofsd
   # None of these has an environment or settings override, and the virtiofsd
   # bundled under resources/ is only consulted on Ubuntu 22.04, so without
-  # these links Cowork reports its VM as unavailable on Arch.
+  # these links Cowork reports its VM as unavailable on Arch. qemu needs no
+  # link: Arch's qemu-system-* packages install to the same /usr/bin path.
 
   # Everything in this section rests on those strings still being in
   # app.asar. When upstream moves one, the package goes on building and
   # Cowork silently reports no VM, so assert them here: a bump that changes
   # them fails the build instead, which is when there is someone to read it.
   local _asar="${pkgdir}/usr/lib/${_pkgname}/resources/app.asar"
-  local _want=('/usr/bin/virtiofsd' '/usr/libexec/virtiofsd')
+  # Arch's CARCH values are exactly qemu's binary suffixes, on both arches.
+  local _want=('/usr/bin/virtiofsd' '/usr/libexec/virtiofsd'
+               "/usr/bin/qemu-system-${CARCH}")
   if [[ $CARCH == x86_64 ]]; then
     # The CODE path the links are named after, and the replace() call that
     # derives the VARS path from it -- which is what makes OVMF_VARS_4M.fd the

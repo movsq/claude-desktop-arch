@@ -1,7 +1,7 @@
 pkgbase = claude-desktop-bin
 	pkgdesc = Claude desktop app: Chat, Cowork and Claude Code in one window (official Anthropic build)
-	pkgver = 3.1623.0
-	pkgrel = 3
+	pkgver = 5.11492.5
+	pkgrel = 1
 	url = https://claude.ai/download
 	install = claude-desktop-bin.install
 	arch = x86_64
@@ -60,10 +60,10 @@ pkgbase = claude-desktop-bin
 	optdepends = bubblewrap: filesystem isolation for Claude Code sandboxed Bash
 	optdepends = socat: network proxy relay for Claude Code sandboxed Bash
 	optdepends = openssh: system ssh client for Claude Code remote sessions
-	provides = claude-desktop=3.1623.0
+	provides = claude-desktop=5.11492.5
 	conflicts = claude-desktop
-	noextract = claude-desktop-3.1623.0-amd64.deb
-	noextract = claude-desktop-3.1623.0-arm64.deb
+	noextract = claude-desktop-5.11492.5-amd64.deb
+	noextract = claude-desktop-5.11492.5-arm64.deb
 	options = !strip
 	options = !debug
 	backup = etc/apparmor.d/claude-desktop
@@ -72,13 +72,13 @@ pkgbase = claude-desktop-bin
 	source = claude-desktop-flags.conf
 	sha256sums = 51dde82e033e475ec0326b91cb3fa7124898b07069a4c473cbee1bcc1df4a19c
 	sha256sums = 97dc3edd77a9643d1e5dc70fd463cdf82b4281372506df2242cc68a82c32ec4a
-	source_x86_64 = claude-desktop-3.1623.0-amd64.deb::https://downloads.claude.ai/claude-desktop/apt/stable/pool/main/c/claude-desktop/claude-desktop_3.1623.0_amd64.deb
+	source_x86_64 = claude-desktop-5.11492.5-amd64.deb::https://downloads.claude.ai/claude-desktop/apt/stable/pool/main/c/claude-desktop/claude-desktop_5.11492.5_amd64.deb
 	optdepends_x86_64 = qemu-system-x86: sandboxed VM for Cowork
 	optdepends_x86_64 = edk2-ovmf: UEFI firmware for the Cowork sandbox VM
-	sha256sums_x86_64 = d39e1d9a570f1e517f158479f5a1d903b9a74d1ef3f279362002dcad375e33cf
-	source_aarch64 = claude-desktop-3.1623.0-arm64.deb::https://downloads.claude.ai/claude-desktop/apt/stable/pool/main/c/claude-desktop/claude-desktop_3.1623.0_arm64.deb
+	sha256sums_x86_64 = b96208b207e450b740f7dbe304f6077fed80e7f3d37ddd545991c4e8201564cf
+	source_aarch64 = claude-desktop-5.11492.5-arm64.deb::https://downloads.claude.ai/claude-desktop/apt/stable/pool/main/c/claude-desktop/claude-desktop_5.11492.5_arm64.deb
 	optdepends_aarch64 = qemu-system-aarch64: sandboxed VM for Cowork
 	optdepends_aarch64 = edk2-aarch64: UEFI firmware for the Cowork sandbox VM
-	sha256sums_aarch64 = a6e18ed06b48e0af2acd08f4837c2695a4cc027e31a82891a651b486a4a0e55c
+	sha256sums_aarch64 = fe6cd8a70f96b96eb4e6b647300cfaee6aaff4ce133a0fbbe11c2cdb775f5a6a
 
 pkgname = claude-desktop-bin
