@@ -22,6 +22,32 @@ optional packages: Cowork's sandbox VM, Claude Code's sandboxed Bash, and the tr
 icon menu. Pass `-y` to take all three, `-n` to skip them, or `--dry-run` to print
 the commands without running them.
 
+### Cowork's sandbox VM
+
+Cowork runs its sandbox in a QEMU virtual machine and needs three optional
+packages for it. Cowork only looks for them at Debian paths, so this package adds
+symlinks from those paths to where Arch installs them.
+
+| Package (x86_64) | What Cowork uses it for | Symlink this package adds |
+| --- | --- | --- |
+| `qemu-system-x86` | runs the VM | none, Arch already uses `/usr/bin/qemu-system-x86_64` |
+| `edk2-ovmf` | the UEFI firmware the VM boots, and its settings template | `/usr/share/edk2/OVMF_CODE_4M.fd`, `/usr/share/edk2/OVMF_VARS_4M.fd` |
+| `virtiofsd` | shares your folders with the VM | `/usr/bin/virtiofsd` |
+
+`./install.sh` offers all three. To install them by hand:
+
+```bash
+sudo pacman -S --needed --asdeps qemu-system-x86 edk2-ovmf virtiofsd
+```
+
+On aarch64 the packages are `qemu-system-aarch64`, `edk2-aarch64` and
+`virtiofsd`, and only the `virtiofsd` link is needed. You don't need to join the
+`kvm` group on Arch.
+
+Until those packages are installed, the symlinks point at nothing. That's why
+`namcap` reports three errors on the built package, one per link. They're
+expected, and they go away once the packages are installed.
+
 ## Update
 
 Nothing updates on its own. The app has no built-in updater on Linux, and this
@@ -86,14 +112,10 @@ changes are all in the Debian wrapping around it.
 
 ## Known issues
 
-- Cowork's VM needs the optional `qemu-system-*`, EDK2 firmware and `virtiofsd`
-  packages. You don't need to join the `kvm` group on Arch.
-- The flags file has no effect when the app starts through "Open at login". The app
-  writes that autostart entry itself and points it at the real binary. Edit
-  `~/.config/autostart/claude-desktop.desktop` to run `claude-desktop` if you need
-  your switches there.
-- `namcap` reports three errors, one per Cowork symlink. They point at files from
-  the optional packages, so they dangle until you install those. That's expected.
+The flags file has no effect when the app starts through "Open at login". The app
+writes that autostart entry itself and points it at the real binary. Edit
+`~/.config/autostart/claude-desktop.desktop` to run `claude-desktop` if you need
+your switches there.
 
 ## Further reading
 
