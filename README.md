@@ -44,9 +44,9 @@ On aarch64 the packages are `qemu-system-aarch64`, `edk2-aarch64` and
 `virtiofsd`, and only the `virtiofsd` link is needed. You don't need to join the
 `kvm` group on Arch.
 
-Until those packages are installed, the symlinks point at nothing. That's why
-`namcap` reports three errors on the built package, one per link. They're
-expected, and they go away once the packages are installed.
+The links point at files from those packages, so `namcap` reports three errors on
+the built package, one per link. They're expected. `namcap` checks the package
+file on its own, so it reports them even when the packages are installed.
 
 ## Update
 
