@@ -28,8 +28,9 @@ sudo pacman -U claude-desktop-bin-<pkgver>-<pkgrel>-x86_64.pkg.tar.zst
 
 ./update.sh                     # bump to the newest published release
 ./update.sh 3.1623.0            # pin a version
-./update.sh --check             # report only; exit 0 current, 10 new release, 11 not installed,
-                                #   12 published is older than the PKGBUILD (withdrawn release)
+./update.sh --check             # report only; exit 0 current, 10 new release, 11 PKGBUILD current
+                                #   but installed package behind or absent, 12 published is older
+                                #   than the PKGBUILD (withdrawn release)
 ./update.sh --no-verify         # skip the OpenPGP check
 
 makepkg --printsrcinfo > .SRCINFO   # REQUIRED after any PKGBUILD edit
@@ -49,9 +50,10 @@ release without notice. When they move, the package still builds and the feature
 stops working.
 
 So `package()` **asserts them**. It greps `app.asar` for every hardcoded Debian path the
-Cowork symlinks target, and checks the GNOME search provider's `.service` `Exec=` line
-still names `/usr/bin/gjs` and a script inside this package's prefix. A bump that changes
-one fails the build with a message naming it.
+Cowork symlinks target and for the QEMU path Arch already matches, checks the GNOME search
+provider's `.service` `Exec=` line still names `/usr/bin/gjs` and a script inside this
+package's prefix, and checks that script exists. A bump that changes one fails the build
+with a message naming it.
 
 Keep this property when adding anything: **if a change depends on an upstream fact, assert
 that fact in `package()`.** `makepkg` runs `package()` under `errexit` with an `ERR` trap,
@@ -115,6 +117,10 @@ those exact line prefixes, and resets `pkgrel=1` only when the version actually 
 **Do not reformat those three lines.** The plain `sha256sums=()` array for the two local
 source files is deliberately separate and is not touched by those anchors.
 
+A bare `./update.sh` refuses to move the PKGBUILD backwards (the exit-12 situation); only
+naming the version downgrades. It regenerates `.SRCINFO` itself — the manual
+`--printsrcinfo` is for hand edits.
+
 `makepkg` does not refresh checksums for you: after editing `claude-desktop.sh` or
 `claude-desktop-flags.conf`, update `sha256sums=()` by hand and regenerate `.SRCINFO`.
 
@@ -141,6 +147,9 @@ system conf path and replace the `exec` target with a stub that prints its argv.
 
 `check-update.sh` plus the units in `systemd/` are maintainer tooling, **not part of the
 package** — they are not in `source=()` and are installed to `~/.config/systemd/user`.
+The units hardcode this checkout's absolute path. Moving the repo silently kills the
+notifier: fix both units and reinstall them (`docs/packaging-notes.md`, "Getting told about
+a new release").
 
 Two stages, because no single signal means "a system upgrade is running": a path unit on
 `/var/lib/pacman/db.lck` as a reliable but indiscriminate doorbell, then a filter that reads
@@ -148,6 +157,10 @@ the command line pacman logs for itself in `/var/log/pacman.log` and proceeds on
 system upgrade. The filter fails open. A pacman hook cannot replace either stage — hooks run
 around transactions, so they never see a bare `-Sy`, and their triggers match packages, not
 the flags that caused the transaction.
+
+`PACMAN_LOG` overrides `/var/log/pacman.log` (test-only) and `CLAUDE_UPDATE_MIN_INTERVAL`
+the 600 s rate limit, so the sysupgrade filter can be exercised against a fake log without
+pacman.
 
 `update.sh` prints progress on stderr and results on stdout precisely because
 `check-update.sh` puts stdout into a desktop notification. Keep that separation.
