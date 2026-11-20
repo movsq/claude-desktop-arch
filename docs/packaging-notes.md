@@ -232,12 +232,20 @@ Nothing polls for you by default. `systemd/` holds a user path unit that runs
 notification if a newer release has been published:
 
 ```bash
-install -Dm644 -t ~/.config/systemd/user systemd/claude-desktop-update-check.{path,service}
+mkdir -p ~/.config/systemd/user
+for u in path service; do
+  sed "s|@CHECKOUT@|$PWD|g" systemd/claude-desktop-update-check.$u \
+    > ~/.config/systemd/user/claude-desktop-update-check.$u
+done
 systemctl --user daemon-reload
 systemctl --user enable --now claude-desktop-update-check.path
 ```
 
-Both units carry absolute paths to this checkout, so edit them if it moves.
+Run it from the root of the checkout. The units in `systemd/` leave the
+checkout's path as `@CHECKOUT@`, and the `sed` fills it in, so the installed
+copies point at wherever you cloned it. Systemd has no specifier for "the
+directory this unit file came from", and `%h` would only fix the home
+directory, not the folder name. Run it again if the checkout moves.
 
 It works in two stages, because no single signal means "a system upgrade is
 running".

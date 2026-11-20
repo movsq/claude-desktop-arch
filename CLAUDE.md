@@ -147,9 +147,10 @@ system conf path and replace the `exec` target with a stub that prints its argv.
 
 `check-update.sh` plus the units in `systemd/` are maintainer tooling, **not part of the
 package** — they are not in `source=()` and are installed to `~/.config/systemd/user`.
-The units hardcode this checkout's absolute path. Moving the repo silently kills the
-notifier: fix both units and reinstall them (`docs/packaging-notes.md`, "Getting told about
-a new release").
+The units in the repo carry an `@CHECKOUT@` placeholder that the install command in
+`docs/packaging-notes.md` ("Getting told about a new release") fills with the checkout's
+path. Keep it a placeholder; a real path leaks the local username and breaks other
+clones. Moving the repo silently kills the notifier until the units are reinstalled.
 
 Two stages, because no single signal means "a system upgrade is running": a path unit on
 `/var/lib/pacman/db.lck` as a reliable but indiscriminate doorbell, then a filter that reads

@@ -47,14 +47,20 @@ changes nothing. To go back to an older release, name it, as in
 `yay -Syu` and raises a desktop notification when there is something to do,
 usually a new release. Otherwise it stays silent.
 
+Run this from the root of your checkout. The `sed` fills in the checkout's path,
+which the units in the repository leave as `@CHECKOUT@`.
+
 ```bash
-install -Dm644 -t ~/.config/systemd/user systemd/claude-desktop-update-check.{path,service}
+mkdir -p ~/.config/systemd/user
+for u in path service; do
+  sed "s|@CHECKOUT@|$PWD|g" systemd/claude-desktop-update-check.$u \
+    > ~/.config/systemd/user/claude-desktop-update-check.$u
+done
 systemctl --user daemon-reload
 systemctl --user enable --now claude-desktop-update-check.path
 ```
 
-Both units contain the absolute path of the checkout they came from. If you cloned
-somewhere else, fix `ExecStart=` and `Documentation=` before installing them.
+If you move the checkout later, run it again from the new place.
 
 ## What the package changes
 
