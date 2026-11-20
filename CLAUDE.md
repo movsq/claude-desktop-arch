@@ -154,7 +154,9 @@ clones. Moving the repo silently kills the notifier until the units are reinstal
 Two stages, because no single signal means "a system upgrade is running": a path unit on
 `/var/lib/pacman/db.lck` as a reliable but indiscriminate doorbell, then a filter that reads
 the command line pacman logs for itself in `/var/log/pacman.log` and proceeds only for a
-system upgrade. The filter fails open. A pacman hook cannot replace either stage — hooks run
+system upgrade: `u` with a sync, or a refresh (`y`) naming no packages, which is all yay
+logs for `yay -Syu` when no repo package needs upgrading. The filter fails open only when
+it has no line to read. A pacman hook cannot replace either stage — hooks run
 around transactions, so they never see a bare `-Sy`, and their triggers match packages, not
 the flags that caused the transaction.
 
@@ -162,6 +164,8 @@ The service must stay active until `db.lck` is gone (its `ExecStartPost=` wait).
 restarts a path-triggered service the moment it exits if the path still exists, so a check
 that returns while pacman holds the lock loops into the start limit and kills the path unit
 for good. That happened on 2026-11-18. Don't drop the wait or put a timeout back on it.
+It also sets `StartLimitIntervalSec=0`, because one yay AUR install takes the lock more
+than five times in ten seconds, each a separate start; keep that too.
 
 `PACMAN_LOG` overrides `/var/log/pacman.log` (test-only) and `CLAUDE_UPDATE_MIN_INTERVAL`
 the 600 s rate limit, so the sysupgrade filter can be exercised against a fake log without

@@ -1,6 +1,6 @@
 [Unit]
 Description=Doorbell: a pacman or yay run just started
-Documentation=file://@CHECKOUT@/check-update.sh
+Documentation=https://github.com/movsq/claude-desktop-arch
 
 [Path]
 # pacman takes this lock for every operation that writes -- -Sy, -Syu, -S, -U,

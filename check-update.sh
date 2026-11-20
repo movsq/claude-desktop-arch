@@ -29,21 +29,39 @@ mkdir -p "$cache"
 # answer is wanted. Nothing pacman exposes to a hook could do this: triggers
 # match transactions, not the flags that caused them.
 #
-# Fails open. An unreadable log or a line this cannot parse means the check
-# runs, so the gate only ever drops invocations it positively recognised as
-# something else.
+# Counts as an upgrade: a sync with `u` (`-Syu`, `--sync --sysupgrade`), or a
+# sync that only refreshes, with `y` and no package names. The second is how
+# yay runs `yay -Syu`: it logs a refresh, `pacman -S -y --config
+# /etc/pacman.conf --`, and a separate `-S -y -u` only when repo packages need
+# upgrading, so with AUR-only updates or none the refresh is all there is. It
+# lets a bare `pacman -Sy` through too, which costs one check.
+#
+# Fails open only where nothing can be read: an unreadable log or no Running
+# line means the check runs. A line that is read is judged by its flags.
 _is_sysupgrade() {
-  local tok sync=0 upgrade=0
-  for tok in $1; do
+  local tok toks sync=0 upgrade=0 refresh=0 targets=0 skip=0 ended=0
+  read -ra toks <<<"$1"
+  for tok in "${toks[@]:1}"; do  # [0] is the program name
+    if (( skip )); then skip=0; continue; fi
+    if (( ended )); then targets=1; continue; fi
     case $tok in
+      --)           ended=1 ;;
       --sysupgrade) upgrade=1 ;;
       --sync)       sync=1 ;;
+      --refresh)    refresh=1 ;;
+      # Long options whose value is the next word, not a package name.
+      --config|--dbpath|--root|--sysroot|--cachedir|--logfile|--gpgdir|\
+      --hookdir|--arch|--ignore|--ignoregroup|--assume-installed|\
+      --overwrite|--print-format|--color)
+                    skip=1 ;;
       --*)          ;;  # any other long option, and never a short cluster
       -*)           [[ $tok == *S* ]] && sync=1
-                    [[ $tok == *u* ]] && upgrade=1 ;;
+                    [[ $tok == *u* ]] && upgrade=1
+                    [[ $tok == *y* ]] && refresh=1 ;;
+      *)            targets=1 ;;
     esac
   done
-  (( sync && upgrade ))
+  (( sync && (upgrade || (refresh && !targets)) ))
 }
 
 if [[ ${1:-} != --force ]]; then

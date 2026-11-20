@@ -1,20 +1,28 @@
 [Unit]
 Description=Ask Anthropic's apt index whether a newer Claude Desktop exists
+Documentation=https://github.com/movsq/claude-desktop-arch
+# No start rate limit. Its job is to stop a path unit busy-looping a service
+# that exits while the path still exists, and the ExecStartPost= wait below
+# already prevents that. What it would still catch is legitimate: one yay AUR
+# install takes and drops pacman's lock several times a second (eight lock
+# runs in ten seconds in this machine's log), each a separate start, and the
+# default 5 starts per 10 s would fail this unit and the path unit with it.
+# check-update.sh's filter and ten-minute stamp throttle the real work.
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
-# The check is two small HTTPS requests and a gpg verification, so 120 s is
-# plenty; a stalled connection must not hold the unit for the rest of the
-# pacman run. The leading '-' lets the wait below run even when the check
-# fails or times out.
-ExecStart=-/usr/bin/timeout 120 @CHECKOUT@/check-update.sh
+# The check is four small HTTPS requests (InRelease, the key, two Packages
+# indexes) and a gpg verification, so 120 s is plenty; a stalled connection
+# must not hold the unit for the rest of the pacman run. The leading '-' lets
+# the wait below run even when the check fails or times out. The quotes keep a
+# checkout path with spaces in one piece.
+ExecStart=-/usr/bin/timeout 120 "@CHECKOUT@/check-update.sh"
 # When this service exits, the path unit checks db.lck again at once and
 # restarts it if the lock is still there (systemd.path(5)). A check that
-# finishes while pacman still holds the lock would then run again and again
-# until StartLimitBurst= trips, which fails the path unit too and leaves it
-# dead until someone runs `systemctl --user reset-failed`. Staying active
-# until the lock is gone makes it one check per pacman run, however long
-# the run takes. A stale lock left by a crashed pacman keeps this waiting
-# quietly, not looping.
+# finishes while pacman still holds the lock would then run again and again.
+# Staying active until the lock is gone makes it one check per pacman run,
+# however long the run takes. A stale lock left by a crashed pacman keeps this
+# waiting quietly, not looping.
 ExecStartPost=/usr/bin/sh -c 'while [ -e /var/lib/pacman/db.lck ]; do sleep 1; done'
 TimeoutStartSec=infinity

@@ -238,7 +238,7 @@ notification if a newer release has been published:
 ```bash
 mkdir -p ~/.config/systemd/user
 for u in path service; do
-  sed "s|@CHECKOUT@|$PWD|g" systemd/claude-desktop-update-check.$u \
+  sed "s|@CHECKOUT@|${PWD//&/\\&}|g" systemd/claude-desktop-update-check.$u \
     > ~/.config/systemd/user/claude-desktop-update-check.$u
 done
 systemctl --user daemon-reload
@@ -249,7 +249,10 @@ Run it from the root of the checkout. The units in `systemd/` leave the
 checkout's path as `@CHECKOUT@`, and the `sed` fills it in, so the installed
 copies point at wherever you cloned it. Systemd has no specifier for "the
 directory this unit file came from", and `%h` would only fix the home
-directory, not the folder name. Run it again if the checkout moves.
+directory, not the folder name. Run it again if the checkout moves. The
+`${PWD//&/\\&}` escapes `&`, which `sed` would otherwise read as "the matched
+text", and `ExecStart=` quotes the path so spaces survive; a path containing
+`|` or `%` is still not supported.
 
 It works in two stages, because no single signal means "a system upgrade is
 running".
@@ -268,18 +271,31 @@ active until the lock is gone: `ExecStart=` runs the check under a 120 s cap,
 then `ExecStartPost=` waits for `db.lck` to disappear. A stale lock left by a
 crashed pacman keeps it waiting, which costs one sleeping shell.
 
-**The filter** is `/var/log/pacman.log`, where pacman records its own command
-line as it starts (`[PACMAN] Running 'pacman -Syu'`, and for yay something
-like `pacman --config /tmp/… -Syu --needed …`). `check-update.sh` reads the
-last such line and goes no further unless it names a system upgrade — a `-S`
-cluster together with a `u`, or `--sync --sysupgrade`. A non-upgrade run exits
-in about 3 ms having touched nothing, not even the rate-limit stamp.
+The service also sets `StartLimitIntervalSec=0`. The start limit exists to stop
+exactly the loop the wait already prevents, and what it would still catch is
+legitimate: a single yay AUR install takes and drops the lock several times a
+second (`-S`, `-D`, `-U`, `-D`, ...), each a new start, and the default of five
+starts in ten seconds would fail the units the same way. The filter and the
+ten-minute stamp below keep that from costing anything.
 
-The filter fails open: an unreadable log or a line it cannot parse means the
-check runs anyway, so it only ever drops invocations it positively recognised
-as something else. Bare `pacman -Sy` is among them, deliberately — a refresh
-without an upgrade leaves a partial-upgrade state nobody should be courting on
-Arch. Drop the `u` requirement in `_is_sysupgrade` if you disagree.
+**The filter** is `/var/log/pacman.log`, where pacman records its own command
+line as it starts (`[PACMAN] Running 'pacman -Syu'`). `check-update.sh` reads
+the last such line and goes no further unless it names a system upgrade: a
+sync with a `u` (`-Syu`, `--sync --sysupgrade`), or a sync that only
+refreshes, with a `y` and no package names. A non-upgrade run exits in about
+3 ms having touched nothing, not even the rate-limit stamp.
+
+The refresh-only case is for yay, which never logs `-Syu`. `yay -Syu` logs a
+refresh, `pacman -S -y --config /etc/pacman.conf --`, and then a separate
+`pacman -S -y -u --config /etc/pacman.conf --` only when repo packages need
+upgrading. With AUR-only updates, or none, the refresh is the only line, so a
+filter that required `u` missed exactly the runs where nothing else would
+prompt a rebuild. The cost is that a bare `pacman -Sy` also triggers a check.
+Refreshes that name packages (`-Sy foo`) are still dropped.
+
+The filter fails open only where it has nothing to read: an unreadable log or
+no `Running` line at all means the check runs anyway. A line it can read is
+judged by its flags, so an unrecognisable line is dropped.
 
 The check runs beside the pacman run that triggered it, out of process, so it
 cannot slow `-Syu` down — but it also cannot print into that terminal, hence

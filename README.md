@@ -79,7 +79,7 @@ which the units in the repository leave as `@CHECKOUT@`.
 ```bash
 mkdir -p ~/.config/systemd/user
 for u in path service; do
-  sed "s|@CHECKOUT@|$PWD|g" systemd/claude-desktop-update-check.$u \
+  sed "s|@CHECKOUT@|${PWD//&/\\&}|g" systemd/claude-desktop-update-check.$u \
     > ~/.config/systemd/user/claude-desktop-update-check.$u
 done
 systemctl --user daemon-reload
