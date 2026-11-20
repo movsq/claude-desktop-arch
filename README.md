@@ -94,8 +94,6 @@ changes are all in the Debian wrapping around it.
   your switches there.
 - `namcap` reports three errors, one per Cowork symlink. They point at files from
   the optional packages, so they dangle until you install those. That's expected.
-- The app is proprietary. This repository holds only the packaging, and the build
-  downloads the `.deb` from Anthropic.
 
 ## Further reading
 
@@ -103,3 +101,9 @@ changes are all in the Debian wrapping around it.
 including what upstream hardcodes, how the signature check works and how other AUR
 packages handle the same `.deb`. [CLAUDE.md](CLAUDE.md) is the starting point for
 anyone changing the packaging, human or agent.
+
+## License
+
+The packaging files in this repository are under [0BSD](LICENSE). Claude Desktop
+itself is proprietary Anthropic software. This repository doesn't contain it, and
+the build downloads it from Anthropic.
