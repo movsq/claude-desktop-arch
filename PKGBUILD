@@ -189,7 +189,7 @@ package() {
   # --- the rest of upstream's postinst ----------------------------------
   # Its `configure` step registers five things. The apt repository (keyring,
   # sources entry, unattended-upgrades snippet) is deliberately dropped --
-  # updates come from the AUR -- and the AppArmor profile is below. The other
+  # updates come from this repository -- and the AppArmor profile is below. The other
   # three are reproduced here as packaged files, so pacman owns them and
   # removes them again. All three sources stay in place under resources/,
   # exactly where the copies reference them.

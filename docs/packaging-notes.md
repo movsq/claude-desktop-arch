@@ -16,7 +16,7 @@ upstream has no place for (a flags file, below):
 
 | Upstream `.deb` | Here |
 | --- | --- |
-| `postinst` registers Anthropic's apt repo, keyring and unattended-upgrades snippet | dropped — updates come from the AUR |
+| `postinst` registers Anthropic's apt repo, keyring and unattended-upgrades snippet | dropped — updates come from this repository |
 | `postinst` writes `/etc/apparmor.d/claude-desktop` | shipped as a packaged file, loaded by `.install` |
 | `postinst` copies the GNOME Shell search provider out of `resources/` | shipped as packaged files (`.ini` + D-Bus `.service`) |
 | `postinst` copies `resources/linux-mime/com.anthropic.Claude.xml` | shipped as a packaged file in `/usr/share/mime/packages/` |
