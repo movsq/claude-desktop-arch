@@ -87,6 +87,8 @@ case $rc in
       body="${out}"$'\n\n'"cd ${PWD} && ./update.sh && ./install.sh" ;;
   11) title='Claude Desktop: built but not installed'
       body="${out}"$'\n\n'"cd ${PWD} && ./install.sh" ;;
+  12) title='Claude Desktop: upstream withdrew a release'
+      body="${out}"$'\n\n'"To follow it back: cd ${PWD} && ./update.sh <version> && ./install.sh" ;;
   0)  exit 0 ;;
   # Errors stay quiet: the usual cause is the network being down, which the
   # pacman run that triggered this will have complained about already. The

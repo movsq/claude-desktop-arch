@@ -4,18 +4,20 @@
 # than from a local download.
 #
 # The index is trusted only after its signature is checked: InRelease is
-# verified against the pinned Anthropic release key, the Packages files are
-# verified against the SHA256 listed in InRelease, and the .deb checksums that
-# land in the PKGBUILD come from there.
+# verified against the pinned Anthropic release key and refused once its
+# Valid-Until has passed, the Packages files are verified against the SHA256
+# listed in InRelease, and the .deb checksums that land in the PKGBUILD come
+# from there.
 #
 #   ./update.sh              bump to the newest version
-#   ./update.sh 1.32352.1    pin a specific version
+#   ./update.sh 1.32352.1    pin a specific version (the only way to go back)
 #   ./update.sh --no-verify  skip the OpenPGP check (HTTPS only)
 #   ./update.sh --check      report only, change nothing
 #
 # --check exits 0 when there is nothing to do, 10 when upstream has published
-# a version newer than the PKGBUILD, and 11 when the PKGBUILD is current but
-# the installed package is behind it. Any other non-zero exit is an error.
+# a version newer than the PKGBUILD, 11 when the PKGBUILD is current but the
+# installed package is behind it, and 12 when the newest published version is
+# older than the PKGBUILD's. Any other non-zero exit is an error.
 
 set -euo pipefail
 
@@ -34,7 +36,7 @@ for arg in "$@"; do
   case "$arg" in
     --no-verify) verify=0 ;;
     --check) check=1 ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \?//'; exit 0 ;;
     -*) echo "unknown option: $arg" >&2; exit 2 ;;
     *) want="$arg" ;;
   esac
@@ -53,6 +55,9 @@ trap 'rm -rf "$tmp"' EXIT
 
 fetch() { curl -fsSL "$1" -o "$2" || die "download failed: $1"; }
 
+# True when version $1 sorts strictly after $2.
+newer() { [[ $1 != "$2" && $(printf '%s\n' "$1" "$2" | sort -V | tail -n1) == "$1" ]]; }
+
 # --- signed repository index -------------------------------------------------
 
 fetch "${APT}/dists/stable/InRelease" "$tmp/InRelease"
@@ -66,20 +71,33 @@ if (( verify )); then
     || die "signing key fingerprint mismatch: got ${got_fpr:-none}, expected $KEY_FPR"
 
   gpg --dearmor < "$tmp/key.asc" > "$tmp/keyring.gpg"
-  gpgv --keyring "$tmp/keyring.gpg" "$tmp/InRelease" 2>/dev/null \
+  # Everything below reads gpgv's output, the signed text alone: a clearsigned
+  # file can carry unsigned lines around the signature, and parsing the file
+  # itself would read those too.
+  gpgv --keyring "$tmp/keyring.gpg" --output "$tmp/Release" "$tmp/InRelease" 2>/dev/null \
     || die "InRelease signature verification failed"
   say "==> InRelease signature OK (${KEY_FPR})"
+
+  # A validly signed but old index replayed by a mirror or proxy would hide
+  # every release since, so honour the expiry Anthropic signs into it, as apt
+  # does. apt treats a missing Valid-Until as no expiry; so does this.
+  until=$(sed -n 's/^Valid-Until: //p' "$tmp/Release")
+  if [[ -n $until ]]; then
+    until_s=$(date -d "$until" +%s 2>/dev/null) || die "cannot parse Valid-Until: $until"
+    (( until_s >= $(date +%s) )) || die "InRelease expired at $until; refusing a stale index"
+  fi
 else
   say "==> skipping signature verification (--no-verify)"
+  cp "$tmp/InRelease" "$tmp/Release"
 fi
 
-# SHA256 the InRelease claims for a file listed under its SHA256: section.
+# SHA256 the signed Release text claims for a file under its SHA256: section.
 index_sha() {
   awk -v want="$1" '
     /^SHA256:/ { in_sha = 1; next }
     /^[^ ]/    { in_sha = 0 }
     in_sha && $3 == want { print $1; exit }
-  ' "$tmp/InRelease"
+  ' "$tmp/Release"
 }
 
 # --- newest version, and its .deb checksum, per architecture -----------------
@@ -146,6 +164,12 @@ if (( check )); then
   installed=$(pacman -Q claude-desktop-bin 2>/dev/null | awk '{print $2}')
   echo "published ${version} | PKGBUILD ${current} | installed ${installed:-none}"
 
+  # Older than the PKGBUILD: with the index verified and unexpired, the likely
+  # cause is upstream withdrawing a release, which is worth hearing about.
+  if newer "$current" "$version"; then
+    echo "the newest published release is older than the PKGBUILD"
+    exit 12
+  fi
   if [[ $current != "$version" ]]; then
     echo "a newer release has been published"
     exit 10
@@ -160,8 +184,13 @@ fi
 
 # --- rewrite the PKGBUILD ----------------------------------------------------
 
-
-if [[ $current == "$version" ]]; then
+# Going back is allowed only when asked for by name: a bare bump that would
+# land on an older version means the index changed under us, not that the
+# user wants a downgrade.
+if newer "$current" "$version"; then
+  [[ -n $want ]] || die "newest published version $version is older than the PKGBUILD's $current; pass it explicitly to downgrade"
+  say "==> downgrading ${current} -> ${version}"
+elif [[ $current == "$version" ]]; then
   say "==> already at $version; refreshing checksums and .SRCINFO"
 else
   say "==> ${current} -> ${version}"

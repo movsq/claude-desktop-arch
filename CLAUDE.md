@@ -28,7 +28,8 @@ sudo pacman -U claude-desktop-bin-<pkgver>-<pkgrel>-x86_64.pkg.tar.zst
 
 ./update.sh                     # bump to the newest published release
 ./update.sh 3.1623.0            # pin a version
-./update.sh --check             # report only; exit 0 current, 10 new release, 11 not installed
+./update.sh --check             # report only; exit 0 current, 10 new release, 11 not installed,
+                                #   12 published is older than the PKGBUILD (withdrawn release)
 ./update.sh --no-verify         # skip the OpenPGP check
 
 makepkg --printsrcinfo > .SRCINFO   # REQUIRED after any PKGBUILD edit

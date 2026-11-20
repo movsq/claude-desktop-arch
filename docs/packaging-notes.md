@@ -192,20 +192,28 @@ repository's own package index, which it verifies first.
 
 ```bash
 ./update.sh              # bump to the newest published version
-./update.sh 1.32352.1    # pin a specific version
+./update.sh 1.32352.1    # pin a specific version; the only way to downgrade
 ./update.sh --no-verify  # skip the OpenPGP check, trust HTTPS alone
 ./update.sh --check      # report only, change nothing
 ```
 
 `--check` prints one line comparing what upstream publishes against the
 `PKGBUILD` and the installed package, and exits `0` when there is nothing to
-do, `10` when a newer release exists, or `11` when the `PKGBUILD` is current
-but the installed package is behind it.
+do, `10` when a newer release exists, `11` when the `PKGBUILD` is current
+but the installed package is behind it, or `12` when the newest published
+version is older than the `PKGBUILD`'s — with the index verified and
+unexpired, most likely upstream withdrawing a release. `check-update.sh`
+raises a notification for `12` too. A plain `./update.sh` refuses to move
+the `PKGBUILD` backwards in that case; name the version to do it anyway.
 
 The trust chain matches what `apt` itself does:
 
 1. `dists/stable/InRelease` is verified with `gpgv` against Anthropic's release
    key, pinned to fingerprint `31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE`.
+   Everything after that reads only the signed text `gpgv` writes out, never
+   the file itself, which can carry unsigned lines around the signature, and
+   the index is refused once its signed `Valid-Until` has passed, so a mirror
+   cannot replay an old one to hide newer releases.
 2. Each `main/binary-*/Packages` index is verified against the SHA256 that the
    signed `InRelease` lists for it.
 3. The per-architecture `.deb` SHA256 values written into the PKGBUILD are read
