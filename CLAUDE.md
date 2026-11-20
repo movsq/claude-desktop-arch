@@ -106,7 +106,8 @@ noise (PIE/RELRO/unstripped), the setuid `chrome-sandbox`, and dlopen false posi
 
 ## Version bumps
 
-`update.sh` verifies Anthropic's signed `InRelease` against a pinned fingerprint, verifies
+`update.sh` verifies Anthropic's signed `InRelease` against a pinned fingerprint (one primary
+key in the key file, and `VALIDSIG` must name it: `gpgv` alone trusts every key it is given), verifies
 each `Packages` index against the SHA256 that `InRelease` signs for it, and takes the `.deb`
 checksums from there — so the PKGBUILD's checksums are signed without downloading the `.deb`.
 

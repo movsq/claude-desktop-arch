@@ -210,6 +210,10 @@ The trust chain matches what `apt` itself does:
 
 1. `dists/stable/InRelease` is verified with `gpgv` against Anthropic's release
    key, pinned to fingerprint `31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE`.
+   `gpgv` accepts a signature from any key in its keyring, so the downloaded
+   key file must hold exactly one primary key, and `gpgv`'s `VALIDSIG` status
+   must name the pinned key as the signer's primary key. Checking only the
+   file's first fingerprint would let a second key appended to it sign.
    Everything after that reads only the signed text `gpgv` writes out, never
    the file itself, which can carry unsigned lines around the signature, and
    the index is refused once its signed `Valid-Until` has passed, so a mirror

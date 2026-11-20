@@ -66,6 +66,13 @@ if (( verify )); then
   command -v gpg >/dev/null || die "gpg not found (install gnupg, or pass --no-verify)"
   fetch "$KEY_URL" "$tmp/key.asc"
 
+  # gpgv accepts a signature from any key in its keyring, so checking the
+  # file's first fingerprint is not enough: a key.asc carrying the real key
+  # followed by a second one would pass that check and let the second key sign.
+  # Refuse more than one primary key here, and below require that the
+  # signature itself was made by the pinned key or one of its subkeys.
+  npub=$(gpg --show-keys --with-colons "$tmp/key.asc" | awk -F: '$1=="pub"' | wc -l)
+  (( npub == 1 )) || die "key file holds $npub primary keys, expected exactly 1"
   got_fpr=$(gpg --show-keys --with-colons "$tmp/key.asc" | awk -F: '$1=="fpr"{print $10; exit}')
   [[ $got_fpr == "$KEY_FPR" ]] \
     || die "signing key fingerprint mismatch: got ${got_fpr:-none}, expected $KEY_FPR"
@@ -74,8 +81,13 @@ if (( verify )); then
   # Everything below reads gpgv's output, the signed text alone: a clearsigned
   # file can carry unsigned lines around the signature, and parsing the file
   # itself would read those too.
-  gpgv --keyring "$tmp/keyring.gpg" --output "$tmp/Release" "$tmp/InRelease" 2>/dev/null \
+  status=$(gpgv --status-fd 1 --keyring "$tmp/keyring.gpg" --output "$tmp/Release" \
+             "$tmp/InRelease" 2>/dev/null) \
     || die "InRelease signature verification failed"
+  # VALIDSIG's last field is the fingerprint of the signing key's primary key.
+  awk -v want="$KEY_FPR" '$2 == "VALIDSIG" && $NF == want { ok = 1 } END { exit !ok }' \
+      <<<"$status" \
+    || die "InRelease is not signed by the pinned key $KEY_FPR"
   say "==> InRelease signature OK (${KEY_FPR})"
 
   # A validly signed but old index replayed by a mirror or proxy would hide
@@ -160,9 +172,12 @@ current=$(awk -F= '$1 == "pkgver" { print $2; exit }' PKGBUILD)
 
 if (( check )); then
   # pacman -Q needs no database lock, so this is safe to run while pacman holds
-  # one -- which is exactly when check-update.sh calls it.
-  installed=$(pacman -Q claude-desktop-bin 2>/dev/null | awk '{print $2}')
-  echo "published ${version} | PKGBUILD ${current} | installed ${installed:-none}"
+  # one -- which is exactly when check-update.sh calls it. It exits 1 when the
+  # package is not installed, which pipefail would turn into set -e ending the
+  # script with no output; not installed is an answer here, not an error.
+  installed=$(pacman -Q claude-desktop-bin 2>/dev/null | awk '{print $2}') || installed=''
+  rel=$(awk -F= '$1 == "pkgrel" { print $2; exit }' PKGBUILD)
+  echo "published ${version} | PKGBUILD ${current}-${rel} | installed ${installed:-none}"
 
   # Older than the PKGBUILD: with the index verified and unexpired, the likely
   # cause is upstream withdrawing a release, which is worth hearing about.
@@ -174,7 +189,9 @@ if (( check )); then
     echo "a newer release has been published"
     exit 10
   fi
-  if [[ ${installed%-*} != "$version" ]]; then
+  # The whole pkgver-pkgrel: a packaging-only change bumps pkgrel alone, and
+  # the installed -1 is then just as stale as an older version would be.
+  if [[ $installed != "${version}-${rel}" ]]; then
     echo "the PKGBUILD is current but the installed package is not"
     exit 11
   fi
