@@ -74,16 +74,18 @@ offer() {
 
 # --- the package itself ------------------------------------------------------
 
-pkgver=$(awk -F= '$1 == "pkgver" { print $2; exit }' PKGBUILD)
-pkgrel=$(awk -F= '$1 == "pkgrel" { print $2; exit }' PKGBUILD)
 carch=$(uname -m)
-pkgfile="claude-desktop-bin-${pkgver}-${pkgrel}-${carch}.pkg.tar.zst"
+# Ask makepkg where the package goes rather than assuming the checkout and
+# .pkg.tar.zst: PKGDEST and PKGEXT in makepkg.conf can move or rename it.
+# options=(!debug) means this is the one package the PKGBUILD builds.
+pkgfile=$(makepkg --packagelist | head -n1)
+[[ -n $pkgfile ]] || { echo "install.sh: makepkg --packagelist printed nothing" >&2; exit 1; }
 
 if [[ ! -f $pkgfile ]]; then
-  echo "==> building ${pkgfile}"
+  echo "==> building ${pkgfile##*/}"
   run makepkg -f
 else
-  echo "==> using existing ${pkgfile}"
+  echo "==> using existing ${pkgfile##*/}"
 fi
 
 echo "==> installing"

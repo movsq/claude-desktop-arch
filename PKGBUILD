@@ -35,6 +35,19 @@ install="${pkgname}.install"
 #                          which is why namcap reports all three as possibly
 #                          unneeded. Prune only against upstream, not against
 #                          the ELF headers.
+#   libstdc++              not NEEDED by the main binary; NEEDED by
+#                          node_modules/node-pty/prebuilds/linux-x64/pty.node
+#                          under app.asar.unpacked, the terminal backend.
+#   xdg-utils              not a library: Electron runs xdg-open (the string
+#                          is in the binary), and upstream declares it.
+#   xdg-desktop-portal     not a library: upstream Depends. Upstream also
+#                          hard-requires one backend (-gtk | -gnome | -kde);
+#                          here the backends are optdepends, because the
+#                          right one depends on the desktop and Arch's
+#                          xdg-desktop-portal-impl virtual would make every
+#                          install choose one.
+#   hicolor-icon-theme     owns the usr/share/icons/hicolor directories the
+#                          payload's icons install into.
 depends=(
   'alsa-lib'
   'at-spi2-core'
@@ -120,12 +133,16 @@ _debarch() {
 
 prepare() {
   # Glob the member: dpkg-deb picks the payload compression, and Debian
-  # tooling has been migrating from xz to zstd.
-  bsdtar -xf "${srcdir}/${_pkgname}-${pkgver}-$(_debarch).deb" -C "${srcdir}" 'data.tar.*'
+  # tooling has been migrating from xz to zstd. Write it under one fixed name
+  # rather than its own: makepkg keeps src/ between builds, so a data.tar.xz
+  # left by an older build next to a new data.tar.zst would make a data.tar.*
+  # glob in package() match both. bsdtar detects the compression itself.
+  bsdtar -xOf "${srcdir}/${_pkgname}-${pkgver}-$(_debarch).deb" 'data.tar.*' \
+    > "${srcdir}/data.tar"
 }
 
 package() {
-  bsdtar -xpf "${srcdir}"/data.tar.* -C "${pkgdir}" --no-same-owner ./usr
+  bsdtar -xpf "${srcdir}/data.tar" -C "${pkgdir}" --no-same-owner ./usr
 
   # The Chromium SUID sandbox helper. Arch allows unprivileged user
   # namespaces, so Chromium normally uses those, but keep the helper as the
