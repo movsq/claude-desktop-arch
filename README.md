@@ -9,6 +9,23 @@ inside it untouched.
 The PKGBUILD declares `x86_64` and `aarch64`. Only `x86_64` has been built and
 tested.
 
+## How this differs from the AUR's `claude-desktop`
+
+Both repackage the same `.deb`, with the same checksums and the same Cowork
+symlinks. As of 5.11492.5-1 this one differs in four ways.
+
+- The Cowork VM stack (`qemu-system-*`, EDK2 firmware, `virtiofsd`) and Claude
+  Code's `bubblewrap` and `socat` are optional here. The AUR package makes them
+  hard dependencies, the VM stack on x86_64 only.
+- The build fails if upstream moves any path or file the package relies on. The
+  AUR package doesn't check, so a moved path would leave Cowork broken with no
+  error at build time.
+- It keeps what upstream's `postinst` registers: the AppArmor userns profile, the
+  GNOME Shell search provider and the `.mcpb`, `.dxt` and `.skill` MIME types.
+- It doesn't pick your display backend. The AUR package's launcher adds
+  `--ozone-platform=wayland` on Wayland sessions. Here that's up to you, in the
+  flags file or with `ELECTRON_OZONE_PLATFORM_HINT`.
+
 ## Install
 
 ```bash
