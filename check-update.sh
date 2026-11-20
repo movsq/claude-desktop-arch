@@ -2,7 +2,7 @@
 # Ask update.sh whether a newer Claude Desktop has been published, and raise a
 # desktop notification if so. Meant to be fired by
 # claude-desktop-update-check.path, which triggers on pacman taking its
-# database lock -- so this runs after `pacman -Sy` / `yay -Sy` rather than
+# database lock -- so this runs beside `pacman -Syu` / `yay -Syu` rather than
 # inside it, and cannot slow either of them down.
 #
 # Nothing here writes to the pacman database, and `pacman -Q` needs no lock,

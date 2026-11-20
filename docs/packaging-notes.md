@@ -254,6 +254,16 @@ running".
 operation that writes. That makes it reliable — it catches `-Syu` whatever
 else the run does — but indiscriminate: `-U`, `-S pkg` and `-R` ring it too.
 
+`PathExists=` does not ring once per run by itself. When the triggered service
+exits, systemd checks the path again at once and restarts the service if the
+lock is still there (`systemd.path(5)`). The check takes milliseconds, so a
+long transaction used to restart it five times in a row, trip the service's
+start limit, and fail the path unit with it. After that it ignored every
+pacman run until `systemctl --user reset-failed`. So the service now stays
+active until the lock is gone: `ExecStart=` runs the check under a 120 s cap,
+then `ExecStartPost=` waits for `db.lck` to disappear. A stale lock left by a
+crashed pacman keeps it waiting, which costs one sleeping shell.
+
 **The filter** is `/var/log/pacman.log`, where pacman records its own command
 line as it starts (`[PACMAN] Running 'pacman -Syu'`, and for yay something
 like `pacman --config /tmp/… -Syu --needed …`). `check-update.sh` reads the
@@ -267,7 +277,7 @@ as something else. Bare `pacman -Sy` is among them, deliberately — a refresh
 without an upgrade leaves a partial-upgrade state nobody should be courting on
 Arch. Drop the `u` requirement in `_is_sysupgrade` if you disagree.
 
-The check runs *after* the command that triggered it, out of process, so it
+The check runs beside the pacman run that triggered it, out of process, so it
 cannot slow `-Syu` down — but it also cannot print into that terminal, hence
 the notification. `~/.cache/claude-desktop-update/status` keeps the last
 result, and a floor of ten minutes between checks (override with

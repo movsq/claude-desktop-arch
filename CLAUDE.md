@@ -159,6 +159,11 @@ system upgrade. The filter fails open. A pacman hook cannot replace either stage
 around transactions, so they never see a bare `-Sy`, and their triggers match packages, not
 the flags that caused the transaction.
 
+The service must stay active until `db.lck` is gone (its `ExecStartPost=` wait). systemd
+restarts a path-triggered service the moment it exits if the path still exists, so a check
+that returns while pacman holds the lock loops into the start limit and kills the path unit
+for good. That happened on 2026-11-18. Don't drop the wait or put a timeout back on it.
+
 `PACMAN_LOG` overrides `/var/log/pacman.log` (test-only) and `CLAUDE_UPDATE_MIN_INTERVAL`
 the 600 s rate limit, so the sysupgrade filter can be exercised against a fake log without
 pacman.

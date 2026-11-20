@@ -3,8 +3,18 @@ Description=Ask Anthropic's apt index whether a newer Claude Desktop exists
 
 [Service]
 Type=oneshot
-ExecStart=@CHECKOUT@/check-update.sh
-# The check is two small HTTPS requests and a gpg verification; well short of
-# this, but a stalled connection must not leave the unit running and the
-# doorbell disarmed.
-TimeoutStartSec=120
+# The check is two small HTTPS requests and a gpg verification, so 120 s is
+# plenty; a stalled connection must not hold the unit for the rest of the
+# pacman run. The leading '-' lets the wait below run even when the check
+# fails or times out.
+ExecStart=-/usr/bin/timeout 120 @CHECKOUT@/check-update.sh
+# When this service exits, the path unit checks db.lck again at once and
+# restarts it if the lock is still there (systemd.path(5)). A check that
+# finishes while pacman still holds the lock would then run again and again
+# until StartLimitBurst= trips, which fails the path unit too and leaves it
+# dead until someone runs `systemctl --user reset-failed`. Staying active
+# until the lock is gone makes it one check per pacman run, however long
+# the run takes. A stale lock left by a crashed pacman keeps this waiting
+# quietly, not looping.
+ExecStartPost=/usr/bin/sh -c 'while [ -e /var/lib/pacman/db.lck ]; do sleep 1; done'
+TimeoutStartSec=infinity

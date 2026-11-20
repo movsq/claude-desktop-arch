@@ -5,8 +5,10 @@ Documentation=file://@CHECKOUT@/check-update.sh
 [Path]
 # pacman takes this lock for every operation that writes -- -Sy, -Syu, -S, -U,
 # -R -- and releases it at the end, so the lock appearing is the signal that a
-# pacman or yay run has begun. PathExists re-arms only once the lock is gone
-# again, which gives one check per invocation without any debouncing of our own.
+# pacman or yay run has begun. PathExists alone does not give one check per
+# run: systemd re-checks the path the moment the service exits and starts it
+# again while the lock is still there. The service therefore stays active
+# until the lock is gone; see its ExecStartPost=.
 #
 # Deliberately indiscriminate: this only has to be reliable, and check-update.sh
 # narrows it to a system upgrade by reading the command line pacman logs for
